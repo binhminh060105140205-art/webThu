@@ -26,9 +26,18 @@
 .lede { color: var(--ink-soft); font-size: 1.04rem; line-height: 1.65; max-width: 430px; }
 .source-note { align-items: center; color: var(--ink); display: flex; font-size: .82rem; gap: 9px; margin: 28px 0 35px; }
 .source-dot { background: var(--mint-strong); border-radius: 50%; box-shadow: 0 0 0 5px rgba(55, 142, 108, .12); height: 8px; width: 8px; }
+.practice-options { margin: 0 0 27px; max-width: 430px; }
+.practice-options > label { display: block; margin-bottom: 10px; }
+.count-input-wrap { align-items: center; display: flex; gap: 10px; }
+.count-input-wrap input { background: rgba(255, 253, 248, .7); border: 1px solid var(--line); border-radius: 5px; color: var(--ink); font-family: Fraunces, serif; font-size: 1.35rem; outline: none; padding: 10px 12px; width: 105px; }
+.count-input-wrap input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(231, 120, 61, .13); }
+.count-input-wrap span { color: var(--ink-soft); font-size: .78rem; }
+.count-help { color: var(--ink-soft); font-size: .72rem; line-height: 1.4; margin: 9px 0 0; }
+.count-help.has-error { color: var(--orange-deep); }
 .primary-button, .secondary-button, .text-button { border-radius: 999px; cursor: pointer; font-size: .84rem; font-weight: 700; transition: transform .2s ease, background .2s ease, color .2s ease; }
 .primary-button { background: var(--ink); border: 1px solid var(--ink); color: #fffdf8; padding: 15px 21px; }
-.primary-button:hover { background: var(--orange-deep); border-color: var(--orange-deep); transform: translateY(-2px); }
+.primary-button:hover:not(:disabled) { background: var(--orange-deep); border-color: var(--orange-deep); transform: translateY(-2px); }
+.primary-button:disabled { cursor: not-allowed; opacity: .45; }
 .primary-button span, .text-button span, .sidebar-submit span { font-size: 1.1rem; margin-left: 8px; }
 .start-button { padding: 17px 25px; }
 

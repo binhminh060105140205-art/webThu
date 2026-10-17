@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
 import type { OptionKey, QuizAnswerState } from '../quiz/quiz'
-import { calculateQuizResult } from '../quiz/quiz'
+import { calculateQuizResult, selectQuestionSet } from '../quiz/quiz'
 import { questions } from '../data/questions'
 import './QuizApp.css'
 
 type Screen = 'landing' | 'quiz' | 'results'
 
 const optionKeys: OptionKey[] = ['a', 'b', 'c', 'd']
+
+const defaultQuestionCount = 10
 
 function getResultLabel(percentage: number) {
   if (percentage >= 80) return 'Nắm bài rất tốt'
@@ -17,17 +19,25 @@ function getResultLabel(percentage: number) {
 export function QuizApp() {
   const [screen, setScreen] = useState<Screen>('landing')
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [questionCountInput, setQuestionCountInput] = useState(String(defaultQuestionCount))
+  const [activeQuestions, setActiveQuestions] = useState(() => selectQuestionSet(questions, defaultQuestionCount))
   const [answers, setAnswers] = useState<QuizAnswerState>({})
   const [submittedAnswers, setSubmittedAnswers] = useState<QuizAnswerState>({})
 
-  const currentQuestion = questions[currentIndex]
+  const requestedQuestionCount = Number(questionCountInput)
+  const hasValidQuestionCount = Number.isInteger(requestedQuestionCount) && requestedQuestionCount >= 1 && requestedQuestionCount <= questions.length
+  const questionCount = hasValidQuestionCount ? requestedQuestionCount : defaultQuestionCount
+  const currentQuestion = activeQuestions[currentIndex]
   const quizResult = useMemo(
-    () => calculateQuizResult(questions, submittedAnswers),
-    [submittedAnswers],
+    () => calculateQuizResult(activeQuestions, submittedAnswers),
+    [activeQuestions, submittedAnswers],
   )
   const answeredCount = Object.values(answers).filter(Boolean).length
 
   function startQuiz() {
+    if (!hasValidQuestionCount) return
+
+    setActiveQuestions(selectQuestionSet(questions, questionCount))
     setAnswers({})
     setSubmittedAnswers({})
     setCurrentIndex(0)
@@ -71,9 +81,27 @@ export function QuizApp() {
             </p>
             <div className="source-note">
               <span className="source-dot" />
-              <span>15 câu chọn lọc từ tài liệu PDF</span>
+              <span>{questionCount} câu chọn lọc từ tài liệu PDF</span>
             </div>
-            <button className="primary-button start-button" onClick={startQuiz}>
+            <div className="practice-options">
+              <label className="section-kicker" htmlFor="question-count">SỐ CÂU MUỐN ÔN</label>
+              <div className="count-input-wrap">
+                <input
+                  id="question-count"
+                  type="number"
+                  min="1"
+                  max={questions.length}
+                  value={questionCountInput}
+                  onChange={(event) => setQuestionCountInput(event.target.value)}
+                  aria-describedby="question-count-help"
+                />
+                <span>trong {questions.length} câu</span>
+              </div>
+              <p className={`count-help ${hasValidQuestionCount ? '' : 'has-error'}`} id="question-count-help">
+                {hasValidQuestionCount ? 'Các câu sẽ được chia đều giữa các chủ đề.' : `Nhập số từ 1 đến ${questions.length}.`}
+              </p>
+            </div>
+            <button className="primary-button start-button" onClick={startQuiz} disabled={!hasValidQuestionCount}>
               Bắt đầu luyện tập <span aria-hidden="true">↗</span>
             </button>
           </div>
@@ -147,10 +175,10 @@ export function QuizApp() {
                 <span className="section-kicker">XEM LẠI BÀI LÀM</span>
                 <h2>Đi qua từng câu</h2>
               </div>
-              <span className="review-count">{questions.length} câu</span>
+              <span className="review-count">{activeQuestions.length} câu</span>
             </div>
             <div className="review-list">
-              {questions.map((question, index) => {
+              {activeQuestions.map((question, index) => {
                 const answer = submittedAnswers[question.id]
                 const isCorrect = answer === question.correctOption
                 return (
@@ -175,7 +203,7 @@ export function QuizApp() {
     )
   }
 
-  const progress = ((currentIndex + 1) / questions.length) * 100
+  const progress = ((currentIndex + 1) / activeQuestions.length) * 100
   const currentAnswer = answers[currentQuestion.id]
 
   return (
@@ -189,7 +217,7 @@ export function QuizApp() {
         <button className="quit-button" onClick={goHome}>Thoát bài</button>
       </header>
 
-      <div className="progress-line" aria-label={`Đã đến câu ${currentIndex + 1} trên ${questions.length}`}>
+      <div className="progress-line" aria-label={`Đã đến câu ${currentIndex + 1} trên ${activeQuestions.length}`}>
         <span style={{ width: `${progress}%` }} />
       </div>
 
@@ -197,7 +225,7 @@ export function QuizApp() {
         <div className="question-column">
           <div className="question-head">
             <div>
-              <span className="eyebrow">CÂU {String(currentIndex + 1).padStart(2, '0')} / {String(questions.length).padStart(2, '0')}</span>
+              <span className="eyebrow">CÂU {String(currentIndex + 1).padStart(2, '0')} / {String(activeQuestions.length).padStart(2, '0')}</span>
               <div className="question-tags">
                 <span>{currentQuestion.chapter}</span>
                 <span>Độ khó {currentQuestion.difficulty}</span>
@@ -228,10 +256,10 @@ export function QuizApp() {
             <button className="secondary-button" onClick={() => setCurrentIndex((index) => Math.max(0, index - 1))} disabled={currentIndex === 0}>
               <span aria-hidden="true">←</span> Câu trước
             </button>
-            {currentIndex === questions.length - 1 ? (
+            {currentIndex === activeQuestions.length - 1 ? (
               <button className="primary-button" onClick={submitQuiz}>Nộp bài <span aria-hidden="true">↗</span></button>
             ) : (
-              <button className="primary-button" onClick={() => setCurrentIndex((index) => Math.min(questions.length - 1, index + 1))}>Câu tiếp <span aria-hidden="true">→</span></button>
+              <button className="primary-button" onClick={() => setCurrentIndex((index) => Math.min(activeQuestions.length - 1, index + 1))}>Câu tiếp <span aria-hidden="true">→</span></button>
             )}
           </div>
         </div>
@@ -240,14 +268,14 @@ export function QuizApp() {
           <div className="sidebar-summary">
             <div>
               <span className="section-kicker">TIẾN ĐỘ</span>
-              <strong>{answeredCount}/{questions.length}</strong>
+              <strong>{answeredCount}/{activeQuestions.length}</strong>
             </div>
             <span className="sidebar-summary-note">đã trả lời</span>
           </div>
           <div className="question-map">
             <div className="map-heading"><span>CÂU HỎI</span><span>CHỌN ĐỂ ĐI ĐẾN</span></div>
             <div className="map-grid">
-              {questions.map((question, index) => (
+              {activeQuestions.map((question, index) => (
                 <button
                   className={`map-button ${index === currentIndex ? 'is-current' : ''} ${answers[question.id] ? 'is-answered' : ''}`}
                   key={question.id}
