@@ -2,6 +2,12 @@
 
 Web luyện trắc nghiệm tiếng Việt xoay quanh tài liệu `LUẬT KINH DOANH.pdf`.
 
+## Mở web online
+
+Sau khi GitHub Pages hoàn tất deploy:
+
+- https://binhminh060105140205-art.github.io/webThu/
+
 ## Chạy local
 
 ```bash
