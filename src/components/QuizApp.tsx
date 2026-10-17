@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { OptionKey, QuizAnswerState } from '../quiz/quiz'
-import { calculateQuizResult, selectQuestionSet } from '../quiz/quiz'
+import { calculateQuizResult, getAnswerState, selectQuestionSet } from '../quiz/quiz'
 import { questions } from '../data/questions'
 import './QuizApp.css'
 
@@ -9,6 +9,13 @@ type Screen = 'landing' | 'quiz' | 'results'
 const optionKeys: OptionKey[] = ['a', 'b', 'c', 'd']
 
 const defaultQuestionCount = 10
+
+function createActiveQuestionSet(requestedCount: number) {
+  return selectQuestionSet(questions, requestedCount).map((question, index) => ({
+    ...question,
+    id: `${question.id}-${index}`,
+  }))
+}
 
 function getResultLabel(percentage: number) {
   if (percentage >= 80) return 'Nắm bài rất tốt'
@@ -20,12 +27,12 @@ export function QuizApp() {
   const [screen, setScreen] = useState<Screen>('landing')
   const [currentIndex, setCurrentIndex] = useState(0)
   const [questionCountInput, setQuestionCountInput] = useState(String(defaultQuestionCount))
-  const [activeQuestions, setActiveQuestions] = useState(() => selectQuestionSet(questions, defaultQuestionCount))
+  const [activeQuestions, setActiveQuestions] = useState(() => createActiveQuestionSet(defaultQuestionCount))
   const [answers, setAnswers] = useState<QuizAnswerState>({})
   const [submittedAnswers, setSubmittedAnswers] = useState<QuizAnswerState>({})
 
   const requestedQuestionCount = Number(questionCountInput)
-  const hasValidQuestionCount = Number.isInteger(requestedQuestionCount) && requestedQuestionCount >= 1 && requestedQuestionCount <= questions.length
+  const hasValidQuestionCount = Number.isInteger(requestedQuestionCount) && requestedQuestionCount >= 1
   const questionCount = hasValidQuestionCount ? requestedQuestionCount : defaultQuestionCount
   const currentQuestion = activeQuestions[currentIndex]
   const quizResult = useMemo(
@@ -37,7 +44,7 @@ export function QuizApp() {
   function startQuiz() {
     if (!hasValidQuestionCount) return
 
-    setActiveQuestions(selectQuestionSet(questions, questionCount))
+    setActiveQuestions(createActiveQuestionSet(questionCount))
     setAnswers({})
     setSubmittedAnswers({})
     setCurrentIndex(0)
@@ -90,15 +97,14 @@ export function QuizApp() {
                   id="question-count"
                   type="number"
                   min="1"
-                  max={questions.length}
                   value={questionCountInput}
                   onChange={(event) => setQuestionCountInput(event.target.value)}
                   aria-describedby="question-count-help"
                 />
-                <span>trong {questions.length} câu</span>
+                <span>câu / lượt</span>
               </div>
               <p className={`count-help ${hasValidQuestionCount ? '' : 'has-error'}`} id="question-count-help">
-                {hasValidQuestionCount ? 'Các câu sẽ được chia đều giữa các chủ đề.' : `Nhập số từ 1 đến ${questions.length}.`}
+                {hasValidQuestionCount ? `Có thể nhập quá ${questions.length}; câu sẽ lặp theo chu kỳ nếu cần.` : 'Nhập một số nguyên lớn hơn 0.'}
               </p>
             </div>
             <button className="primary-button start-button" onClick={startQuiz} disabled={!hasValidQuestionCount}>
@@ -117,7 +123,7 @@ export function QuizApp() {
               <h2>Luật<br />kinh doanh</h2>
               <div className="paper-card-divider" />
               <div className="paper-card-meta">
-                <span><strong>15</strong> câu hỏi</span>
+                <span><strong>{questions.length}</strong> câu trong ngân hàng</span>
                 <span><strong>03</strong> chủ đề</span>
                 <span><strong>01</strong> lượt luyện</span>
               </div>
@@ -190,7 +196,21 @@ export function QuizApp() {
                         <span className="review-status">{isCorrect ? 'Đúng' : 'Xem lại'}</span>
                       </div>
                       <h3>{question.prompt}</h3>
-                      <p>{isCorrect ? `Bạn chọn: ${question.options[answer as OptionKey]}` : `Đáp án đúng: ${question.options[question.correctOption]}`}</p>
+                      <div className="review-options">
+                        {optionKeys.map((option) => {
+                          const isCorrectOption = option === question.correctOption
+                          const isSelectedWrong = option === answer && !isCorrectOption
+                          return (
+                            <div className={`review-option ${isCorrectOption ? 'is-correct-answer' : ''} ${isSelectedWrong ? 'is-selected-wrong' : ''}`} key={option}>
+                              <span className="review-option-letter">{option}</span>
+                              <span className="review-option-text">{question.options[option]}</span>
+                              {isCorrectOption && <span className="review-option-label">ĐÁP ÁN ĐÚNG</span>}
+                              {isSelectedWrong && <span className="review-option-label">BẠN CHỌN</span>}
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <p>{answer ? `Bạn chọn: ${question.options[answer]}` : 'Bạn chưa trả lời câu này.'}</p>
                       <div className="review-explanation">{question.explanation}</div>
                     </div>
                   </article>
@@ -205,6 +225,7 @@ export function QuizApp() {
 
   const progress = ((currentIndex + 1) / activeQuestions.length) * 100
   const currentAnswer = answers[currentQuestion.id]
+  const answerState = getAnswerState(currentQuestion.correctOption, currentAnswer)
 
   return (
     <main className="app-shell quiz-shell">
@@ -239,17 +260,30 @@ export function QuizApp() {
             <div className="option-list">
               {optionKeys.map((option) => (
                 <button
-                  className={`option-button ${currentAnswer === option ? 'is-selected' : ''}`}
+                  className={`option-button ${currentAnswer === option ? 'is-selected' : ''} ${answerState !== 'unanswered' && option === currentQuestion.correctOption ? 'is-correct-answer' : ''} ${answerState === 'incorrect' && option === currentAnswer ? 'is-selected-wrong' : ''} ${answerState !== 'unanswered' && option !== currentQuestion.correctOption && option !== currentAnswer ? 'is-dimmed' : ''}`}
                   key={option}
                   onClick={() => selectAnswer(option)}
+                  disabled={Boolean(currentAnswer)}
                   aria-pressed={currentAnswer === option}
                 >
                   <span className="option-letter">{option}</span>
                   <span>{currentQuestion.options[option]}</span>
+                  {answerState === 'correct' && option === currentQuestion.correctOption && <span className="option-state-label">ĐÚNG</span>}
+                  {answerState === 'incorrect' && option === currentQuestion.correctOption && <span className="option-state-label">ĐÁP ÁN</span>}
+                  {answerState === 'incorrect' && option === currentAnswer && <span className="option-state-label">BẠN CHỌN</span>}
                   <span className="option-check" aria-hidden="true">{currentAnswer === option ? '✓' : ''}</span>
                 </button>
               ))}
             </div>
+            {answerState !== 'unanswered' && (
+              <div className={`answer-feedback is-${answerState}`} role="status">
+                <strong>{answerState === 'correct' ? 'Chính xác!' : 'Chưa đúng'}</strong>
+                <span>
+                  Đáp án đúng: <b>{currentQuestion.correctOption.toUpperCase()}. {currentQuestion.options[currentQuestion.correctOption]}</b>
+                </span>
+                <p>{currentQuestion.explanation}</p>
+              </div>
+            )}
           </article>
 
           <div className="question-navigation">

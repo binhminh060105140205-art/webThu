@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateQuizResult, selectQuestionSet } from './quiz'
+import { calculateQuizResult, getAnswerState, selectQuestionSet } from './quiz'
 
 const questions = [
   { id: 'q1', correctOption: 'a' as const },
@@ -50,6 +50,14 @@ describe('calculateQuizResult', () => {
   })
 })
 
+describe('getAnswerState', () => {
+  it('reports the answer state before and after selecting an option', () => {
+    expect(getAnswerState('a', undefined)).toBe('unanswered')
+    expect(getAnswerState('a', 'a')).toBe('correct')
+    expect(getAnswerState('a', 'b')).toBe('incorrect')
+  })
+})
+
 describe('selectQuestionSet', () => {
   it('selects the requested number and rotates through chapters', () => {
     const selected = selectQuestionSet(bank, 4)
@@ -63,7 +71,19 @@ describe('selectQuestionSet', () => {
     ])
   })
 
-  it('caps a request at the available question bank size', () => {
-    expect(selectQuestionSet(bank, 99)).toHaveLength(bank.length)
+  it('repeats the available bank when a longer practice session is requested', () => {
+    const selected = selectQuestionSet(bank, 8)
+
+    expect(selected).toHaveLength(8)
+    expect(selected.map((question) => question.id)).toEqual([
+      'khai-quat-1',
+      'chu-the-1',
+      'dau-tu-1',
+      'khai-quat-2',
+      'chu-the-2',
+      'dau-tu-2',
+      'khai-quat-1',
+      'chu-the-1',
+    ])
   })
 })

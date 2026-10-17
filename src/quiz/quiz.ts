@@ -21,8 +21,17 @@ export type QuizResult = {
   percentage: number
 }
 
+export type AnswerState = 'unanswered' | 'correct' | 'incorrect'
+
+export function getAnswerState(correctOption: OptionKey, answer?: OptionKey): AnswerState {
+  if (!answer) return 'unanswered'
+  return answer === correctOption ? 'correct' : 'incorrect'
+}
+
 export function selectQuestionSet<T extends { chapter: string }>(questions: T[], requestedCount: number): T[] {
-  const count = Math.min(Math.max(Math.floor(requestedCount), 0), questions.length)
+  const count = Math.max(Math.floor(requestedCount), 0)
+  if (count === 0 || questions.length === 0) return []
+
   const chapters = [...new Set(questions.map((question) => question.chapter))]
   const questionsByChapter = new Map(chapters.map((chapter) => [
     chapter,
@@ -32,7 +41,9 @@ export function selectQuestionSet<T extends { chapter: string }>(questions: T[],
   const offsets = new Map(chapters.map((chapter) => [chapter, 0]))
   let chapterIndex = 0
 
-  while (selected.length < count) {
+  const uniqueCount = Math.min(count, questions.length)
+
+  while (selected.length < uniqueCount) {
     const chapter = chapters[chapterIndex % chapters.length]
     const chapterQuestions = questionsByChapter.get(chapter) ?? []
     const offset = offsets.get(chapter) ?? 0
@@ -43,6 +54,13 @@ export function selectQuestionSet<T extends { chapter: string }>(questions: T[],
     }
 
     chapterIndex += 1
+  }
+
+  if (selected.length === count) return selected
+
+  const cycle = [...selected]
+  while (selected.length < count) {
+    selected.push(cycle[(selected.length - cycle.length) % cycle.length])
   }
 
   return selected

@@ -3,7 +3,7 @@
 :root {
   font-family: 'DM Sans', sans-serif;
   color: #18313d;
-  background: #f4f0e7;
+  background: #f8fafc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -14,6 +14,6 @@ body { margin: 0; min-width: 320px; min-height: 100vh; }
 
 button { font: inherit; }
 
-button:focus-visible { outline: 3px solid #e9904a; outline-offset: 3px; }
+button:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
 
 #root { min-height: 100vh; }
